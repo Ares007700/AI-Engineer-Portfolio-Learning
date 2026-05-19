@@ -6,4 +6,4 @@ print(f"The total efficiency out of 100% is: {Efficiency:.1%}")  #.1% will show 
 
 #: is format specifier .0f -> no decimal space. so the result will come as float but will show as int
 #:, add comma as thousand seperator
-#.2e scientific notation ^
+#.2e scientific notation ^ used
