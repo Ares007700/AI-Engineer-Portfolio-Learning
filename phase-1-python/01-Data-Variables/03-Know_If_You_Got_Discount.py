@@ -18,3 +18,4 @@ else:
 #print(name)             # Output: Aryan
 #print(age)              # Output: 22
 #print(type(age))        # Output: <class 'int'>
+#always write comparism after if, or it will be ignored
