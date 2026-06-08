@@ -1,7 +1,7 @@
 confidence = float(input("Provide Confidence Level  "))
 feedback = input("Please share your thoughts  ").lower()
 
-bad_keyword = ["complaint","bad","manager","refund","policy"]
+bad_keyword = ["complaint","bad","manager","refund","policy","not"]
 
 if confidence >= 0.85 and not any (word in feedback for word in bad_keyword) : 
     print ("auto reply")
