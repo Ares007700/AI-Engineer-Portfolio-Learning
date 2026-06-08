@@ -1,5 +1,4 @@
-Order_Amount = input("Please enter your order ammount  ")
-Order_Amount = float(Order_Amount)
+Order_Amount = float(input("Please enter your order ammount  "))
 if Order_Amount < 1000 :
     print ("Small Order")
 elif Order_Amount <= 5000 :   #this will cover 1000 to 5000 inclusive 
