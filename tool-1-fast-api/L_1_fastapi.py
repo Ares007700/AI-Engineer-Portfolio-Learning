@@ -1,9 +1,17 @@
 from fastapi import FastAPI  
 
-app = FastAPI()   
+app = FastAPI() 
+
 @app.get("/hello")
 def hello():
     return{"message" : "Hello World"}
+
+@app.post("/input")
+def input(a: int, b: int):
+    return{"result" : a+b}
+
+
+
 
 
 #from fastapi: Tells Python to look inside the installed fastapi library
@@ -20,4 +28,8 @@ def hello():
 #:: Starts the function block
 #return: Sends data back to the user
 #{"message": "Hello world"}: A Python dictionary. FastAPI automatically converts this into JSON format for the response
-#
+
+
+#@app.post("/input"): Tells FastAPI to listen for POST requests (standard for sending data)
+#(a: int, b: int): Defines two input parameters, a and b, both expected to be integers
+#return{"result": a+b}: Returns the sum of a and b in a dictionary format, which FastAPI converts to JSON for the response
