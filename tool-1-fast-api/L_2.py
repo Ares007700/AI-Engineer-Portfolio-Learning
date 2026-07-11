@@ -1,5 +1,3 @@
-from ast import If
-
 from fastapi import FastAPI
 from pydantic import BaseModel 
 
