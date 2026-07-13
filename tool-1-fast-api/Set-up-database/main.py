@@ -82,3 +82,12 @@ def patch_item(item_id: int, payload: ItemUpdate, db: Session = Depends(get_db))
     db.commit()
     db.refresh(item)
     return item
+
+#person.age         age value stored inside person
+#person.walk()      hey person run your walk() method
+
+
+#thing.something
+#means: "go inside thing, and give me something."
+#If something is a plain value → you're reading/writing data (item.name)
+#If something is followed by () → you're calling a function that belongs to that object (db.commit())
