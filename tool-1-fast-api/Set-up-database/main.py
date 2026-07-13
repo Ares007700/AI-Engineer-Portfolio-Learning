@@ -63,3 +63,22 @@ def delete_item(item_id: int, db: Session = Depends(get_db)):
     db.delete(item)
     db.commit()
     return {"message": f"Item {item_id} deleted"}
+
+
+#Update an item by id, if not found, return 404
+class ItemUpdate(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+@app.patch("/items/{item_id}")
+def patch_item(item_id: int, payload: ItemUpdate, db: Session = Depends(get_db)):
+    item = db.query(models.Item).filter(models.Item.id == item_id).first()
+    if item is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    item.name = payload.name
+    item.description = payload.description
+
+    db.commit()
+    db.refresh(item)
+    return item
