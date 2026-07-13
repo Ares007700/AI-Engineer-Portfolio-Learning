@@ -9,6 +9,8 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
+from fastapi import HTTPException
+
 
 from database import engine, SessionLocal, Base
 import models
@@ -30,6 +32,7 @@ class ItemCreate(BaseModel):
     name: str
     description: Optional[str] = None
 
+#Create an item in the database, return the created item
 @app.post("/items")
 def create_item(payload: ItemCreate, db: Session = Depends(get_db)):
     item = models.Item(name=payload.name, description=payload.description)
@@ -38,6 +41,25 @@ def create_item(payload: ItemCreate, db: Session = Depends(get_db)):
     db.refresh(item)
     return item
 
+#get all items from the database, return a list of items
 @app.get("/items")
 def list_items(db: Session = Depends(get_db)):
     return db.query(models.Item).all()
+
+#search for an item by id, if not found, return 404
+@app.get("/items/{item_id}")
+def get_item(item_id: int, db: Session = Depends(get_db)):
+    item = db.query(models.Item).filter(models.Item.id == item_id).first()
+    if item is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+#delete an item by id, if not found, return 404
+@app.delete("/items/{item_id}")
+def delete_item(item_id: int, db: Session = Depends(get_db)):
+    item = db.query(models.Item).filter(models.Item.id == item_id).first()
+    if item is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    db.delete(item)
+    db.commit()
+    return {"message": f"Item {item_id} deleted"}
