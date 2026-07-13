@@ -5,7 +5,7 @@ app = FastAPI()
 
 class AddRequest(BaseModel):  #making it clear how the data type will be
     A: int
-    B: int
+    B: int              #pydantic validation
 
 @app.post("/add")
 def add(data: AddRequest):
