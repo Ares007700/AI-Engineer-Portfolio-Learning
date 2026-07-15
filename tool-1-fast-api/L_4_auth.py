@@ -1,6 +1,7 @@
 from passlib.context import CryptContext
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto") #this will create a CryptContext object that uses bcrypt for hashing passwords
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto") 
+#this will create a CryptContext object that uses bcrypt for hashing passwords
 
 hashed = pwd_context.hash("hello123")   #this will hash the password "hello123" using bcrypt    
 print(hashed)  # something like $2b$12$Kx....
