@@ -15,6 +15,8 @@ from fastapi import HTTPException
 from database import engine, SessionLocal, Base
 import models
 
+from passlib.context import CryptContext
+
 Base.metadata.create_all(bind=engine)  # creates the table if it doesn't exist
 
 app = FastAPI()
@@ -23,18 +25,18 @@ app = FastAPI()
 def get_db():
     db = SessionLocal()
     try:
-        yield db
+        yield db #it will yield the db session to the request, and then close it after the request is done. This is important because we don't want to keep the db session open for too long, as it can cause issues with the database connection pool.
     finally:
         db.close()
 
 # Pydantic model for input
 class ItemCreate(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: Optional[str] = None  #it will allow the description to be optional, so that we can create an item without a description. If the description is not provided, it will be set to None.
 
 #Create an item in the database, return the created item
 @app.post("/items")
-def create_item(payload: ItemCreate, db: Session = Depends(get_db)):
+def create_item(payload: ItemCreate, db: Session = Depends(get_db)): #it will create a new item in the database, and return the created item. It will use the ItemCreate model to validate the input data, and it will use the get_db dependency to get a db session.
     item = models.Item(name=payload.name, description=payload.description)
     db.add(item)
     db.commit()
@@ -43,7 +45,7 @@ def create_item(payload: ItemCreate, db: Session = Depends(get_db)):
 
 #get all items from the database, return a list of items
 @app.get("/items")
-def list_items(db: Session = Depends(get_db)):
+def list_items(db: Session = Depends(get_db)): #it will get all the items from the database, and return a list of items. It will use the get_db dependency to get a db session.
     return db.query(models.Item).all()
 
 #search for an item by id, if not found, return 404
@@ -70,6 +72,8 @@ class ItemUpdate(BaseModel):
     name: str
     description: Optional[str] = None
 
+#for PATCH, we can use the same ItemUpdate model, but we will only update the fields that are provided in the request. 
+# If a field is not provided, we will leave it unchanged.
 @app.patch("/items/{item_id}")
 def patch_item(item_id: int, payload: ItemUpdate, db: Session = Depends(get_db)):
     item = db.query(models.Item).filter(models.Item.id == item_id).first()
@@ -82,6 +86,49 @@ def patch_item(item_id: int, payload: ItemUpdate, db: Session = Depends(get_db))
     db.commit()
     db.refresh(item)
     return item
+
+#for user signup, we will create a new user in the database with a hashed password. 
+# We will use the passlib library to hash the password.
+class UserCreate(BaseModel):
+    email: str
+    password: str
+
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto") #it will use bcrypt to hash the password, and will automatically handle the salt for us.
+
+#it will check if the email is already registered, if it is, it will return a 400 error.
+@app.post("/signup")
+def signup(payload: UserCreate, db: Session = Depends(get_db)):
+    existing = db.query(models.User).filter(models.User.email == payload.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    hashed_pw = pwd_context.hash(payload.password) #it will hash the password using bcrypt, and will automatically handle the salt for us.
+    user = models.User(email=payload.email, hashed_password=hashed_pw) #it will create a new user with the hashed password
+    db.add(user) #it will add the new user to the database
+    db.commit() #it will commit the transaction to the database
+    db.refresh(user) #it will refresh the user object with the data from the database, so that we can return the id and email of the new user.
+    return {"id": user.id, "email": user.email} #it will return the id and email of the new user, but not the password, because we don't want to expose the password to the client.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #person.age         age value stored inside person
 #person.walk()      hey person run your walk() method
