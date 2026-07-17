@@ -11,11 +11,19 @@ from pydantic import BaseModel
 from typing import Optional
 from fastapi import HTTPException
 
-
 from database import engine, SessionLocal, Base
 import models
 
 from passlib.context import CryptContext
+
+from jose import jwt
+from datetime import datetime, timedelta
+
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError
+
+
+
 
 Base.metadata.create_all(bind=engine)  # creates the table if it doesn't exist
 
@@ -124,22 +132,61 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+#@app.post("/login")   --------->   this is without token version, it will just check if the email and password are correct, and return a success message if they are. If they are not, it will return a 401 error.
+#def login(payload: UserLogin, db: Session = Depends(get_db)):  #it will check the user's credentials
+    #user = db.query(models.User).filter(models.User.email == payload.email).first() #it will query the database for a user with the provided email. If no user is found, it will return None.
+
+    #if user is None:
+        #raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    #if not pwd_context.verify(payload.password, user.hashed_password): #it will verify the provided password against the hashed password stored in the database. If the password is incorrect, it will return False.
+        #raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    #return {"message": "Login successful"}
+
+
+
+#Create a token when login succeeds
+SECRET_KEY = "change-this-to-something-random-and-long"
+ALGORITHM = "HS256"
+
+def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=30)):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+#Return a token from /login   version with token, it will return a token if the email and password are correct. If they are not, it will return a 401 error.
 @app.post("/login")
-def login(payload: UserLogin, db: Session = Depends(get_db)):  #it will check the user's credentials
-    user = db.query(models.User).filter(models.User.email == payload.email).first() #it will query the database for a user with the provided email. If no user is found, it will return None.
+def login(payload: UserLogin, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == payload.email).first()
 
+    if user is None or not pwd_context.verify(payload.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    token = create_access_token({"sub": user.email})
+    return {"access_token": token, "token_type": "bearer"}
+
+
+#A protected route — only works with a valid token
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    user = db.query(models.User).filter(models.User.email == email).first()
     if user is None:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return user
 
-    if not pwd_context.verify(payload.password, user.hashed_password): #it will verify the provided password against the hashed password stored in the database. If the password is incorrect, it will return False.
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-
-    return {"message": "Login successful"}
-
-
-
-
-
+@app.get("/me")
+def read_me(current_user: models.User = Depends(get_current_user)):
+    return {"id": current_user.id, "email": current_user.email}
 
 
 
