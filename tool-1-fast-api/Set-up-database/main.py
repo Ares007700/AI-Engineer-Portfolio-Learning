@@ -19,7 +19,8 @@ from passlib.context import CryptContext
 from jose import jwt
 from datetime import datetime, timedelta
 
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
 from jose import JWTError
 
 
@@ -170,16 +171,21 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):   #it will check t
 
 
 #A protected route — only works with a valid token
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")   #it will create an OAuth2PasswordBearer instance that will be used to extract the token from the Authorization header of the request. The tokenUrl parameter specifies the URL where the client can obtain a token, which in this case is the /login endpoint.
+#oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")   #it will create an OAuth2PasswordBearer instance that will be used to extract the token from the Authorization header of the request. The tokenUrl parameter specifies the URL where the client can obtain a token, which in this case is the /login endpoint.
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):    #it will extract the token from the Authorization header of the request, decode it using the SECRET_KEY and ALGORITHM, and return the user object associated with the email in the token. If the token is invalid or expired, it will raise an HTTPException with a 401 status code and a detail message indicating that the token is invalid or expired.
+security = HTTPBearer()  #it will create an HTTPBearer instance that will be used to extract the token from the Authorization header of the request. The HTTPBearer class is a subclass of the OAuth2PasswordBearer class, and it provides a simpler way to extract the token from the request.
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),  #it will use the HTTPBearer instance to extract the token from the Authorization header of the request. The credentials parameter will contain the extracted token, which can be used to authenticate the user.
+    db: Session = Depends(get_db)  #it will use the get_db dependency to get a db session, which will be used to query the database for the user associated with the token.
+):
+    token = credentials.credentials  # this pulls out just the raw token string
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])  #it will decode the JWT token using the SECRET_KEY and ALGORITHM. If the token is invalid or expired, it will raise a JWTError, which will be caught by the except block below.
-        email = payload.get("sub")    #it will extract the email from the payload of the decoded token. The email is stored in the "sub" claim of the token, which is a standard claim used to identify the subject of the token. If the email is not found in the payload, it will raise an HTTPException with a 401 status code and a detail message indicating that the token is invalid or expired.
-    except JWTError:   #it will catch any JWTError that occurs during the decoding of the token. This can happen if the token is invalid, expired, or has been tampered with. In this case, it will raise an HTTPException with a 401 status code and a detail message indicating that the token is invalid or expired.
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])  #it will decode the JWT token using the SECRET_KEY and ALGORITHM. If the token is invalid or expired, it will raise a JWTError exception, which will be caught by the except block below.
+        email = payload.get("sub")  #it will extract the email from the payload of the decoded token. The email is stored in the "sub" claim of the token, which is a standard claim used to identify the subject of the token. If the email is not found in the payload, it will raise an HTTPException with a 401 status code and a detail message indicating that the token is invalid or expired.
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token") 
 
-    user = db.query(models.User).filter(models.User.email == email).first()  #it will query the database for a user with the email extracted from the token. If no user is found, it will raise an HTTPException with a 401 status code and a detail message indicating that the token is invalid or expired.
+    user = db.query(models.User).filter(models.User.email == email).first()  #it will query the database for a user with the extracted email. If no user is found, it will return None, which will be checked in the next line. If a user is found, it will return the user object, which can be used to access the user's id and email in the read_me endpoint below.
     if user is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     return user
