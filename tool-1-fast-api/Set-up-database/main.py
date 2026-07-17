@@ -147,46 +147,46 @@ class UserLogin(BaseModel):
 
 
 #Create a token when login succeeds
-SECRET_KEY = "change-this-to-something-random-and-long"
-ALGORITHM = "HS256"
+SECRET_KEY = "change-this-to-something-random-and-long"  #key used to sign the JWT token. In a real application, you should use a more secure key, such as a randomly generated string of at least 32 characters. You should also keep this key secret and not hard-code it in your code. Instead, you can store it in an environment variable or a configuration file.
+ALGORITHM = "HS256"   #algorithm used to sign the JWT token. HS256 is a symmetric algorithm, which means that the same key is used for both signing and verifying the token. In a real application, you should use a more secure algorithm, such as RS256, which uses asymmetric keys.
 
-def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=30)):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + expires_delta
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes=30)):  #it will create a JWT token with the provided data and expiration time. The default expiration time is 30 minutes, but you can change it by passing a different expires_delta value to the function.
+    to_encode = data.copy()  #it will create a copy of the data dictionary, so that we don't modify the original data. This is important because we want to keep the original data intact, in case we need to use it later.
+    expire = datetime.utcnow() + expires_delta   #it will calculate the expiration time by adding the expires_delta to the current UTC time. This is important because we want the token to expire after a certain amount of time, so that it can't be used indefinitely.
+    to_encode.update({"exp": expire}) #it will add the expiration time to the data dictionary, so that we can include it in the JWT token. This is important because we want the token to have an expiration time, so that it can't be used indefinitely.
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM) #it will encode the data dictionary into a JWT token using the SECRET_KEY and ALGORITHM. This is important because we want to create a secure token that can be used to authenticate the user.
 
 
 #Return a token from /login   version with token, it will return a token if the email and password are correct. If they are not, it will return a 401 error.
 @app.post("/login")
-def login(payload: UserLogin, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == payload.email).first()
+def login(payload: UserLogin, db: Session = Depends(get_db)):   #it will check the user's credentials and return a JWT token if they are correct. If they are not, it will return a 401 error.
+    user = db.query(models.User).filter(models.User.email == payload.email).first()    #it will query the database for a user with the provided email.
 
-    if user is None or not pwd_context.verify(payload.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+    if user is None or not pwd_context.verify(payload.password, user.hashed_password):  #it will check if the user exists and if the password is correct. If either of these checks fail, it will raise an HTTPException with a 401 status code and a detail message indicating that the email or password is invalid.
+        raise HTTPException(status_code=401, detail="Invalid email or password")  #it will raise an HTTPException with a 401 status code and a detail message indicating that the email or password is invalid.
 
-    token = create_access_token({"sub": user.email})
-    return {"access_token": token, "token_type": "bearer"}
+    token = create_access_token({"sub": user.email})   #it will create a JWT token with the user's email as the subject. The token will expire in 30 minutes by default, but this can be changed by passing a different expires_delta value to the create_access_token function.
+    return {"access_token": token, "token_type": "bearer"}  #it will return a JSON response with the access token and the token type. The access token can be used to authenticate the user in subsequent requests, and the token type indicates that the token is a bearer token, which means that it should be included in the Authorization header of the request.
 
 
 #A protected route — only works with a valid token
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")   #it will create an OAuth2PasswordBearer instance that will be used to extract the token from the Authorization header of the request. The tokenUrl parameter specifies the URL where the client can obtain a token, which in this case is the /login endpoint.
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):    #it will extract the token from the Authorization header of the request, decode it using the SECRET_KEY and ALGORITHM, and return the user object associated with the email in the token. If the token is invalid or expired, it will raise an HTTPException with a 401 status code and a detail message indicating that the token is invalid or expired.
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email = payload.get("sub")
-    except JWTError:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])  #it will decode the JWT token using the SECRET_KEY and ALGORITHM. If the token is invalid or expired, it will raise a JWTError, which will be caught by the except block below.
+        email = payload.get("sub")    #it will extract the email from the payload of the decoded token. The email is stored in the "sub" claim of the token, which is a standard claim used to identify the subject of the token. If the email is not found in the payload, it will raise an HTTPException with a 401 status code and a detail message indicating that the token is invalid or expired.
+    except JWTError:   #it will catch any JWTError that occurs during the decoding of the token. This can happen if the token is invalid, expired, or has been tampered with. In this case, it will raise an HTTPException with a 401 status code and a detail message indicating that the token is invalid or expired.
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-    user = db.query(models.User).filter(models.User.email == email).first()
+    user = db.query(models.User).filter(models.User.email == email).first()  #it will query the database for a user with the email extracted from the token. If no user is found, it will raise an HTTPException with a 401 status code and a detail message indicating that the token is invalid or expired.
     if user is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     return user
 
-@app.get("/me")
-def read_me(current_user: models.User = Depends(get_current_user)):
-    return {"id": current_user.id, "email": current_user.email}
+@app.get("/me")  #it will return the current user's id and email if the token is valid. If the token is invalid or expired, it will raise an HTTPException with a 401 status code and a detail message indicating that the token is invalid or expired.
+def read_me(current_user: models.User = Depends(get_current_user)):   #it will use the get_current_user dependency to get the current user object associated with the token. If the token is invalid or expired, it will raise an HTTPException with a 401 status code and a detail message indicating that the token is invalid or expired.
+    return {"id": current_user.id, "email": current_user.email}    #it will return a dictionary containing the id and email of the current user.
 
 
 
