@@ -67,6 +67,8 @@ def delete_item(item_id: int, db: Session = Depends(get_db)):
     return {"message": f"Item {item_id} deleted"}
 
 
+
+
 #Update an item by id, if not found, return 404
 class ItemUpdate(BaseModel):
     name: str
@@ -86,6 +88,9 @@ def patch_item(item_id: int, payload: ItemUpdate, db: Session = Depends(get_db))
     db.commit()
     db.refresh(item)
     return item
+
+
+
 
 #for user signup, we will create a new user in the database with a hashed password. 
 # We will use the passlib library to hash the password.
@@ -109,6 +114,9 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)):
     db.commit() #it will commit the transaction to the database
     db.refresh(user) #it will refresh the user object with the data from the database, so that we can return the id and email of the new user.
     return {"id": user.id, "email": user.email} #it will return the id and email of the new user, but not the password, because we don't want to expose the password to the client.
+
+
+
 
 
 #it will check if the email and password are correct, if they are, it will return a success message. If they are not, it will return a 401 error.
