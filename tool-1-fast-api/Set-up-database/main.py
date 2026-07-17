@@ -111,7 +111,22 @@ def signup(payload: UserCreate, db: Session = Depends(get_db)):
     return {"id": user.id, "email": user.email} #it will return the id and email of the new user, but not the password, because we don't want to expose the password to the client.
 
 
+#it will check if the email and password are correct, if they are, it will return a success message. If they are not, it will return a 401 error.
+class UserLogin(BaseModel):
+    email: str
+    password: str
 
+@app.post("/login")
+def login(payload: UserLogin, db: Session = Depends(get_db)):  #it will check the user's credentials
+    user = db.query(models.User).filter(models.User.email == payload.email).first() #it will query the database for a user with the provided email. If no user is found, it will return None.
+
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    if not pwd_context.verify(payload.password, user.hashed_password): #it will verify the provided password against the hashed password stored in the database. If the password is incorrect, it will return False.
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+    return {"message": "Login successful"}
 
 
 
