@@ -213,7 +213,7 @@ class ChatRequest(BaseModel):  #it will create a Pydantic model for the input of
 @app.post("/chat")
 def chat(payload: ChatRequest, current_user: models.User = Depends(get_current_user)):   #it will create a new endpoint /chat that will accept a message from the user, send it to the OpenRouter API, and return the response from the API. The endpoint will use the ChatRequest model to validate the input data, and it will use the get_current_user dependency to ensure that the user is authenticated before sending the request to the OpenRouter API.
     response = client.chat.completions.create(
-        model=os.getenv("OPENROUTER_MODEL"),  # or any model OpenRouter supports
+        model=os.getenv("OPENROUTER_MODEL"),  #it will send a request to the OpenRouter API with the specified model, which is retrieved from the OPENROUTER_MODEL environment variable. The model parameter specifies which language model to use for generating the response. The available models can be found in the OpenRouter API documentation, and you can choose the one that best fits your use case.
         messages=[
             {"role": "user", "content": payload.message}   #it will send a request to the OpenRouter API with the specified model and the message from the user. The messages parameter is a list of dictionaries, where each dictionary represents a message in the conversation. The role key indicates whether the message is from the user or the assistant, and the content key contains the actual message text. In this case, we are sending a single message from the user with the content provided in the payload.
         ]
