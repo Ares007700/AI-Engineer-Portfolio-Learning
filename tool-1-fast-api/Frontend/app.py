@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-st.title("My AI Chat App")
+st.title("Kamla AI :3")
 
 if "token" not in st.session_state:
     st.session_state.token = None
@@ -23,4 +23,16 @@ if st.button("Login"):
 if st.button("Get My Info"):
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
     response = requests.get("http://localhost:8000/me", headers=headers)
+    st.write(response.json())
+
+
+message = st.text_input("Your message")
+
+if st.button("Send"):
+    headers = {"Authorization": f"Bearer {st.session_state.token}"}
+    response = requests.post(
+        "http://localhost:8000/chat",
+        json={"message": message},
+        headers=headers
+    )
     st.write(response.json())
